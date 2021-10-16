@@ -1,0 +1,191 @@
+name: Cmake Builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "cmake"
+    tags:
+      - "v*.*.*"
+
+jobs:
+  static-build:
+    strategy:
+      matrix:
+        toolchain:
+          - aarch64-linux-musl
+          - aarch64_be-linux-musl
+          - arm-linux-musleabi
+          - arm-linux-musleabihf
+          - armeb-linux-musleabi
+          - armeb-linux-musleabihf
+          - armel-linux-musleabi
+          - armel-linux-musleabihf
+          - armv5l-linux-musleabi
+          - armv5l-linux-musleabihf
+          - armv6-linux-musleabi
+          - armv6-linux-musleabihf
+          - armv7l-linux-musleabihf
+          - armv7m-linux-musleabi
+          - armv7r-linux-musleabihf
+          - i486-linux-musl
+          - i686-linux-musl
+          - m68k-linux-musl
+#          - microblaze-linux-musl
+#          - microblazeel-linux-musl
+          - mips-linux-musl
+          - mips-linux-musln32sf
+          - mips-linux-muslsf
+          - mips64-linux-musl
+          - mips64-linux-musln32
+          - mips64-linux-musln32sf
+          - mips64el-linux-musl
+          - mips64el-linux-musln32
+          - mips64el-linux-musln32sf
+          - mipsel-linux-musl
+          - mipsel-linux-musln32
+          - mipsel-linux-musln32sf
+          - mipsel-linux-muslsf
+          - or1k-linux-musl
+          - powerpc-linux-musl
+          - powerpc-linux-muslsf
+          - powerpc64-linux-musl
+          - powerpc64le-linux-musl
+          - powerpcle-linux-musl
+          - powerpcle-linux-muslsf
+          - riscv32-linux-musl
+          - riscv64-linux-musl
+          - s390x-linux-musl
+          - sh2-linux-musl
+          - sh2-linux-muslfdpic
+          - sh2eb-linux-musl
+          - sh2eb-linux-muslfdpic
+          - sh4-linux-musl
+          - sh4eb-linux-musl
+          - x86_64-linux-musl
+          - x86_64-linux-muslx32
+
+    runs-on: ubuntu-latest
+    container: 
+      image: muslcc/x86_64:${{ matrix.toolchain }}
+
+    steps:
+      - name: Install build tools
+        run: apk add --no-cache git cmake ninja tar zstd
+
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      
+      - name: Set up directories
+        run: |
+          mkdir build
+          mkdir packages
+
+      - name: Configure and compile
+        run: |
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="Release" -DSTATIC=ON .
+          cmake --build build --config Release
+
+      - name: Package
+        run: cpack -G 'TGZ;TBZ2;TXZ' -C Release --config build/CPackConfig.cmake
+
+      - name: Rename packages
+        run: |
+          for f in btop-*-Linux.tar.*
+          do
+            mv $f packages/${f/Linux/${{ matrix.toolchain }}-static}
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: btop-${{ matrix.toolchain }}-${{ github.sha }}
+          path: 'packages/*'
+
+
+  ubuntu-build:
+    strategy:
+      matrix:
+        system:
+          -
+            codename: focal
+            gcc_version: 10
+            deps: libstdc++6 (>= 10.3.0-1ubuntu1~20.04)
+          -
+            codename: hirsute
+            gcc_version: 11
+            deps: libstdc++6 (>= 11.1.0-1ubuntu1~21.04)
+
+
+    runs-on: ubuntu-latest
+    container: 
+      image: ubuntu:${{ matrix.system.codename }}
+
+    steps:
+      - name: Install build tools
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          ln -fs /usr/share/zoneinfo/UTC /etc/localtime
+          apt-get -y update
+          apt-get -y --no-install-recommends install g++-${{ matrix.system.gcc_version }} git ninja-build wget rename ca-certificates zstd
+          wget -q https://github.com/Kitware/CMake/releases/download/v3.21.3/cmake-3.21.3-linux-x86_64.sh
+          chmod +x cmake-3.21.3-linux-x86_64.sh
+          ./cmake-3.21.3-linux-x86_64.sh --prefix=/usr --skip-license
+
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      
+      - name: Set up directories
+        run: |
+          mkdir build
+          mkdir packages
+
+      - name: Configure and compile
+        run: |
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="Release" \
+                -DCMAKE_CXX_COMPILER="g++-${{ matrix.system.gcc_version }}" \
+                -DCPACK_DEBIAN_PACKAGE_DEPENDS="${{ matrix.system.deps }}" \
+                .
+          cmake --build build --config Release
+
+      - name: Package
+        run: cpack -G 'DEB' -C Release --config build/CPackConfig.cmake
+
+      - name: Rename packages
+        run: rename 's,btop-(.*)-Linux.deb$,packages/btop-$1-${{ matrix.system.codename }}-amd64.deb,' btop-*-Linux.deb 
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: btop-${{ matrix.system.codename }}-${{ github.sha }}
+          path: 'packages/*'
+
+  release:
+    runs-on: ubuntu-latest  
+    needs: 
+      - static-build
+      - ubuntu-build
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: packages
+
+      - name: Extract release notes
+        run: awk 'FNR > 1 && $1 == "##" {exit} $0 !~ /^[ \t]*$/ {print $0}' CHANGELOG.md | tee releasenotes
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: releasenotes
+          files: packages/*
