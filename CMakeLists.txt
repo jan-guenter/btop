@@ -57,11 +57,7 @@ function(target_link_options_if_supported)
 	endforeach()
 endfunction()
 
-if(CMAKE_SYSTEM STREQUAL "x86_64")
-	target_compile_options_if_supported(btop PRIVATE -fcf-protection -cfguard)
-endif()
-
-target_compile_options_if_supported(btop PRIVATE -Wall -Wextra -pedantic)
+target_compile_options_if_supported(btop PRIVATE -Wall -Wextra -pedantic -fcf-protection -cfguard)
 target_link_options_if_supported(btop PRIVATE -fexceptions -fstack-protector -fstack-clash-protection)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -84,7 +80,7 @@ if(STATIC)
 	if(NOT STATIC_GETPWUID)
 		target_compile_definitions(btop PRIVATE STATIC_BUILD)
 	endif()
-	target_link_options_if_supported(btop PRIVATE -static)
+	target_link_options_if_supported(btop PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
 
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Nobody <nobody@nowhere.no>")

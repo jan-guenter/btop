@@ -1,7 +1,8 @@
 name: Automatically update from upstream
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
 
 jobs:
   merge-upstream-master:
@@ -15,15 +16,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: master
+          ref: main
           fetch-depth: 0
 
       - name: Merge Upstream
         run: |
+          GIT_MERGE_AUTOEDIT=no
+          git config --global user.email "mail@jan-guenter.de"
+          git config --global user.name "Jan Günter"
+          git config --global core.editor /bin/true
           git remote add --tags -f upstream "https://github.com/aristocratos/btop.git"
           git checkout main
-          git merge --ff-only upstream/main
-          git push
-          git checkout cmake
           LAST_NEW_TAG=$(git tag --list --sort=taggerdate --no-merged | tail -n1)
-          [ ! -z "$LAST_NEW_TAG" ] && git merge --no-edit refs/tags/$LAST_NEW_TAG && git push
+          if [ ! -z "$LAST_NEW_TAG" ]
+          then
+            if (git diff --name-only refs/tags/$LAST_NEW_TAG -- Makefile | grep Makefile > /dev/null)
+            then
+              echo "::warning::upstream Makefile changed"
+            else
+              git merge --no-progress --no-edit --ff -m "auto megre of $LAST_NEW_TAG" --log refs/tags/$LAST_NEW_TAG
+              git push
+              git tag -fa -m "auto copy tag $LAST_NEW_TAG from upstream" $LAST_NEW_TAG-cmake
+              git push origin $LAST_NEW_TAG-cmake
+            fi
+          fi
+          if (git diff --name-only upstream/main -- Makefile | grep Makefile > /dev/null)
+          then
+              echo "::warning::upstream Makefile changed"
+          fi
+          git merge --no-progress --no-edit --ff -m "auto megre of upstream/main" --log upstream/main
+          git push
