@@ -3,13 +3,12 @@ name: Cmake Builds
 on:
   workflow_dispatch:
   push:
-    branches:
-      - "cmake"
     tags:
       - "v*.*.*"
 
 jobs:
   static-build:
+    continue-on-error: true
     strategy:
       matrix:
         toolchain:
@@ -31,8 +30,8 @@ jobs:
           - i486-linux-musl
           - i686-linux-musl
           - m68k-linux-musl
-#          - microblaze-linux-musl
-#          - microblazeel-linux-musl
+          - microblaze-linux-musl
+          - microblazeel-linux-musl
           - mips-linux-musl
           - mips-linux-musln32sf
           - mips-linux-muslsf
@@ -101,7 +100,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: btop-${{ matrix.toolchain }}-${{ github.sha }}
+          name: btop-${{ matrix.toolchain }}
           path: 'packages/*'
 
 
@@ -161,7 +160,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: btop-${{ matrix.system.codename }}-${{ github.sha }}
+          name: btop-${{ matrix.system.codename }}
           path: 'packages/*'
 
   release:
