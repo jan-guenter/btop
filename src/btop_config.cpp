@@ -123,6 +123,8 @@ namespace Config {
 
 		{"temp_scale", 			"#* Which temperature scale to use, available values: \"celsius\", \"fahrenheit\", \"kelvin\" and \"rankine\"."},
 
+		{"base_10_sizes",		"#* Use base 10 for bits/bytes sizes, KB = 1000 instead of KiB = 1024."},
+
 		{"show_cpu_freq", 		"#* Show CPU frequency."},
 
 		{"clock_format", 		"#* Draw a clock at top of screen, formatting according to strftime, empty string to disable.\n"
@@ -212,7 +214,7 @@ namespace Config {
 		{"proc_tree", false},
 		{"proc_colors", true},
 		{"proc_gradient", true},
-		{"proc_per_core", true},
+		{"proc_per_core", false},
 		{"proc_mem_bytes", true},
 		{"proc_info_smaps", false},
 		{"proc_left", false},
@@ -233,6 +235,7 @@ namespace Config {
 		{"use_fstab", true},
 		{"show_io_stat", true},
 		{"io_mode", false},
+		{"base_10_sizes", false},
 		{"io_graph_combined", false},
 		{"net_auto", true},
 		{"net_sync", false},
