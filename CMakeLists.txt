@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.18)
+cmake_minimum_required (VERSION 3.20)
 
 file(STRINGS "src/btop.cpp" BTOP_VERSION_LINE REGEX "Version[ \\t\\r\\n]*=[ \\t\\r\\n]*\"[^\"]+\"")
 string(REGEX REPLACE "^.*Version[ \\t\\r\\n]*=[ \\t\\r\\n]*\"([^\"]+)\".*$" "\\1" BTOP_VERSION "${BTOP_VERSION_LINE}")
@@ -90,6 +90,17 @@ include(CPack)
 
 install(TARGETS btop RUNTIME
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(FILES "btop.desktop"
+        DESTINATION  "share/applications/"
+		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+install(FILES "Img/icon.png"
+        DESTINATION  "share/icons/hicolor/48x48/apps/"
+		RENAME "btop.png"
+		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+install(FILES "Img/icon.svg"
+        DESTINATION  "share/icons/hicolor/scalable/apps/"
+		RENAME "btop.svg"
+		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)		
 install(FILES "README.md"
         DESTINATION  "share/btop/"
 		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)

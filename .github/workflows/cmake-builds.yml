@@ -164,7 +164,8 @@ jobs:
           path: 'packages/*'
 
   release:
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
     needs: 
       - static-build
       - ubuntu-build
