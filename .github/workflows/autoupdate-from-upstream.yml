@@ -2,7 +2,7 @@ name: Automatically update from upstream
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
 
 jobs:
   merge-upstream-master:
@@ -24,6 +24,7 @@ jobs:
           GIT_MERGE_AUTOEDIT=no
           git config --global user.email "mail@jan-guenter.de"
           git config --global user.name "Jan Günter"
+          git config --global --add safe.directory "$(pwd)"
           git config --global core.editor /bin/true
           git remote add --tags -f upstream "https://github.com/aristocratos/btop.git"
           git checkout main
